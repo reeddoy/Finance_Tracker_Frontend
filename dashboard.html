@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="config/config.js"></script>
+</head>
+<body class="bg-gray-100">
+
+  <!-- Navbar (Desktop Only) -->
+  <div id="navbar-container"></div>
+
+  <!-- Main Content (Centered) -->
+  <div class="flex mt-5 justify-center">
+    <div class="w-full max-w-md p-6 bg-white shadow-md rounded-md">
+      <h2 class="text-center text-2xl font-bold mb-6">Dashboard</h2>
+      <p class="text-center">Total Available Balance- <span id="available_balance"></span></p>
+      <p class="text-center">Current Budget- <span id="current_budget"></span></p>
+      <p class="text-center">Total Cost- <span id="total_cost"></span></p>
+    </div>
+</div>
+
+  <!-- Chatbot Container -->
+<div class="flex mt-5 justify-center">
+  <div class="w-full max-w-md p-6 bg-white shadow-md rounded-md">
+    <h2 class="text-center text-2xl font-bold mb-4">AI Chatbot</h2>
+
+    <!-- Chat Messages -->
+    <div id="chat-box" class="h-64 overflow-y-auto border rounded-md p-4 bg-gray-50">
+      <p class="text-sm text-gray-500">Chat started...</p>
+    </div>
+
+    <!-- Input Area -->
+    <div class="mt-4 flex items-center space-x-2">
+      <input id="user-input" type="text" placeholder="Type a message..." class="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-400">
+      <button onclick="sendMessage()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">Send</button>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+  async function fetchDashboardData() {
+    try {
+      // Replace with the correct API endpoint
+      const response = await fetch(`${config.serverUrl}/api/check_dashboard`, {
+        headers: {
+          "Authorization": "Bearer " + localStorage.getItem("access_token")
+        }
+      });
+
+      const data = await response.json();
+      console.log(data)
+      
+      if (response.ok) {
+        // Update the HTML with the values from the API response
+        document.getElementById('available_balance').textContent = `$${data.available_balance}`;
+        document.getElementById('current_budget').textContent = `$${data.budget}`;
+        document.getElementById('total_cost').textContent = `$${data.total_expense}`;
+      } else {
+        alert("Error fetching dashboard data: " + (data.message || "Unknown error"));
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+    }
+  }
+
+  // Fetch data when the page loads
+  fetchDashboardData();
+
+  // Auto-refresh the data every less than 1 seconds (1000ms)
+  setInterval(fetchDashboardData, 500);
+</script>
+
+
+
+
+
+  <div class="my-6 w-[80%] mx-auto bg-white p-6 rounded-lg shadow-lg">
+    <label class="block text-gray-700 font-semibold text-lg mb-4">Add New Expense:</label>
+    <div class="space-y-4">
+        <div class="flex space-x-4">
+            <input type="number" id="amount" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="Amount" required>
+            <select id="category" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-400" required>
+              <option value="" disabled selected>Select Category</option>
+          </select>
+        </div>
+        <div class="flex space-x-4">
+            <input type="text" id="description" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="Description">
+            <input type="date" id="date" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="Date">
+        </div>
+        <div>
+            <input type="text" id="payment_method" class="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-400" placeholder="Payment Method" required>
+        </div>
+        <div>
+            <button onclick="addExpense()" class="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition duration-200">Add Expense</button>
+        </div>
+    </div>
+</div>
+<script>
+  // Function to fetch categories and populate the dropdown
+  async function loadCategories() {
+    try {
+      // Make the API request
+      const response = await fetch(`${config.serverUrl}/api/category_list`, {
+        headers: {
+          "Authorization": "Bearer " + localStorage.getItem("access_token")
+        }
+      });
+
+      const data = await response.json();
+      console.log(data)
+      // Check if the response is successful and contains categories
+      if (response.ok && data.categories && Array.isArray(data.categories)) {
+        const categorySelect = document.getElementById("category");
+        categorySelect.innerHTML = '<option value="" disabled selected>Select Category</option>'; // Clear previous options
+
+        // Populate dropdown with categories using category name as the value
+        data.categories.forEach(category => {
+          const option = document.createElement("option");
+          option.value = category.name; // Use category name as the value
+          option.textContent = category.name; // Display category name in the dropdown
+          categorySelect.appendChild(option);
+        });
+      } else {
+        alert("Error fetching categories: " + (data.message || "No categories available"));
+      }
+    } catch (error) {
+      console.error("Error loading categories:", error);
+      alert("Failed to load categories. Check API connection.");
+    }
+  }
+
+  // Call the function to load categories when the page loads
+  loadCategories()
+</script>
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const dateInput = document.getElementById('date');
+      const currentDate = new Date().toISOString().split('T')[0];  // Get current date in YYYY-MM-DD format
+      dateInput.value = currentDate;  // Set the value of the date input to the current date
+  });
+
+</script>
+<div class="container mx-auto p-6">
+  <h2 class="text-2xl font-bold mb-4">Expense List</h2>
+  <table class="min-w-full table-auto bg-white border border-gray-300 shadow-md text-center">
+      <thead>
+          <tr>
+              <th class="py-2 px-4 border-b">#</th>
+              <th class="py-2 px-4 border-b">Amount</th>
+              <th class="py-2 px-4 border-b">Category</th>
+              <th class="py-2 px-4 border-b">Description</th>
+              <th class="py-2 px-4 border-b">Date</th>
+              <th class="py-2 px-4 border-b">Payment Method</th>
+          </tr>
+      </thead>
+      <tbody id="expenseTable" ></tbody>
+  </table>
+</div>
+
+
+<script>
+    async function addExpense() {
+      const amount = document.getElementById("amount").value.trim();
+      const category = document.getElementById("category").value.trim();
+      const description = document.getElementById("description").value.trim();
+      const date = document.getElementById("date").value.trim();
+      const paymentMethod = document.getElementById("payment_method").value.trim();
+
+      if (!amount || !category || !paymentMethod) {
+          alert("Please fill all required fields.");
+          return;
+      }
+
+      try {
+          const response = await fetch(`${config.serverUrl}/api/add_expense`, {
+              method: "POST",
+              headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": "Bearer " + localStorage.getItem("access_token") // Ensure user is authenticated
+              },
+              body: JSON.stringify({
+                  amount: amount,
+                  category: category,
+                  description: description,
+                  date: date,
+                  payment_method: paymentMethod,
+              })
+          });
+
+          const data = await response.json();
+          if (response.ok) {
+              alert(data.message);
+              fetchExpenses();  // Reload the expense list
+              fetchDashboardData();
+          } else {
+              alert("Error: " + data.message);
+          }
+      } catch (error) {
+          console.error("Error adding expense:", error);
+          alert("Failed to add expense. Check API connection.");
+      }
+  }
+
+  async function fetchExpenses() {
+    try {
+        const response = await fetch(`${config.serverUrl}/api/expense_list`, {
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem("access_token")
+            }
+        });
+
+        const data = await response.json();
+        console.log('Fetched Expenses:', data);  // Log the whole response for debugging
+
+        if (response.ok) {
+            // Check if the expenses field exists and is an array
+            if (data.expenses && Array.isArray(data.expenses)) {
+                renderExpenses(data.expenses);
+            } else {
+                console.error("Expenses data is not available or not in the correct format:", data);
+                alert("Error: Expenses data is not in the expected format.");
+            }
+        } else {
+            alert("Error fetching expenses: " + (data.message || "Unknown error"));
+        }
+    } catch (error) {
+        console.error("Error fetching expenses:", error);
+    }
+}
+
+
+
+  function renderExpenses(expenses) {
+      const tableBody = document.getElementById("expenseTable");
+      tableBody.innerHTML = "";
+
+      expenses.forEach((expense, index) => {
+          tableBody.innerHTML += `
+              <tr>
+                  <td class="py-2 px-4">${index + 1}</td>
+                  <td class="py-2 px-4">${expense.amount}</td>
+                  <td class="py-2 px-4">${expense.category}</td>
+                  <td class="py-2 px-4">${expense.description}</td>
+                  <td class="py-2 px-4">${expense.date}</td>
+                  <td class="py-2 px-4">${expense.payment_method}</td>
+              </tr>
+          `;
+      });
+  }
+
+  // Fetch expenses on page load
+  fetchExpenses();
+
+</script>
+
+
+
+  <script>
+      // Load navbar.html into the container
+      fetch("navbar.html")
+          .then(response => response.text())
+          .then(data => document.getElementById("navbar-container").innerHTML = data)
+          .catch(error => console.error("Error loading navbar:", error));
+  </script>
+  <!-- JavaScript File -->
+  <script type="module" src="config/auth.js"></script>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const chatBox = document.getElementById("chat-box");
+  
+      if (input.value.trim() === "") return;
+  
+      // Add user message
+      chatBox.innerHTML += `<div class="mt-2 text-right"><span class="bg-green-100 text-green-700 px-3 py-1 rounded-lg inline-block">${input.value}</span></div>`;
+  
+      const res = await fetch(`${config.serverUrl}/chat`, {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + localStorage.getItem("access_token")
+        },
+        body: JSON.stringify({ message: input.value }),
+        method: "POST"
+      })
+
+      const data = await res.json();
+      chatBox.innerHTML += `<div class="mt-2"><span class="bg-gray-200 px-3 py-1 rounded-lg inline-block">${data.response}</span></div>`;
+      chatBox.scrollTop = chatBox.scrollHeight;
+  
+      input.value = "";
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  </script>
+
+</body>
+</html>

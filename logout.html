@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logout</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config/config.js"></script>
+</head>
+<body class="bg-gray-100 flex justify-center items-center min-h-screen">
+    <!-- You can keep the logout button if you want to allow the user to log out again later -->
+    <button id="logout-btn" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600">Logout</button>
+
+    <!-- JavaScript -->
+    <script>
+        // This function will execute as soon as the page is loaded
+        window.onload = function() {
+            try {
+                // Remove the JWT token from localStorage or sessionStorage
+                localStorage.removeItem('access_token');
+                
+                // Optionally, you can call the logout API if needed
+                // logoutApiCall(); 
+
+                // Redirect to the login or home page
+                window.location.href = "index.html";  // Change to your login page URL
+
+            } catch (error) {
+                console.error("Error logging out:", error);
+                alert("Logout failed. Please try again.");
+            }
+        };
+
+        // Function to call your API (optional, if needed)
+        /* async function logoutApiCall() {
+            try {
+                const response = await fetch(`${config.serverUrl}/api/logout`, {
+                    method: 'POST',
+                    headers: {
+                        "Authorization": "Bearer " + localStorage.getItem("access_token"),
+                    }
+                });
+
+                if (response.ok) {
+                    console.log("Successfully logged out");
+                } else {
+                    console.error("Failed to log out");
+                }
+            } catch (error) {
+                console.error("Error logging out:", error);
+            }
+        } */
+    </script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config/config.js"></script>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <!-- Navbar (Desktop Only) -->
+    <div id="navbar-container"></div>
+
+    <!-- Filter Buttons -->
+    <div class="flex justify-center gap-4 mt-5">
+        <button id="btn-1-month" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">1 Month</button>
+        <button id="btn-3-months" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">3 Months</button>
+        <button id="btn-current-year" class="bg-yellow-500 text-white px-4 py-2 rounded-md hover:bg-yellow-600">Current Year</button>
+    </div>
+
+    <!-- Date Range Picker -->
+    <div class="flex justify-center gap-4 mt-5">
+        <input type="date" id="start-date" class="border p-2 rounded-md" />
+        <input type="date" id="end-date" class="border p-2 rounded-md" />
+        <button id="btn-date-range" class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600">Filter by Date Range</button>
+    </div>
+
+    <!-- Total Amount -->
+    <div id="total-amount" class="text-center mt-5 font-semibold"></div>
+
+    <!-- Expense List -->
+    <div id="expense-records" class="mt-5"></div>
+
+    <!-- JavaScript to load navbar and handle filtering -->
+    <script>
+        // Load navbar.html into the container
+        fetch("navbar.html")
+            .then(response => response.text())
+            .then(data => document.getElementById("navbar-container").innerHTML = data)
+            .catch(error => console.error("Error loading navbar:", error));
+
+        // Handle button clicks for pre-defined periods
+        document.getElementById('btn-1-month').addEventListener('click', () => {
+            fetchExpenses('1-month');
+        });
+
+        document.getElementById('btn-3-months').addEventListener('click', () => {
+            fetchExpenses('3-months');
+        });
+
+        document.getElementById('btn-current-year').addEventListener('click', () => {
+            fetchExpenses('current-year');
+        });
+
+        // Handle filtering by custom date range
+        document.getElementById('btn-date-range').addEventListener('click', () => {
+            const startDate = document.getElementById('start-date').value;
+            const endDate = document.getElementById('end-date').value;
+            if (startDate && endDate) {
+                fetchExpenses('date-range', startDate, endDate);
+            } else {
+                alert("Please select both start and end dates.");
+            }
+        });
+
+        // Fetch expenses based on different filters
+        async function fetchExpenses(filter, startDate = '', endDate = '') {
+            try {
+                let url = `${config.serverUrl}/api/expense_filter_list?filter=${filter}`;
+
+                // Add date range if applicable
+                if (filter === 'date-range') {
+                    url += `&start_date=${startDate}&end_date=${endDate}`;
+                }
+
+                const response = await fetch(url, {
+                    headers: {
+                        "Authorization": "Bearer " + localStorage.getItem("access_token")
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    renderExpenses(data.expenses, data.total_amount); // Pass total amount as well
+                } else {
+                    alert("Error fetching expenses: " + (data.message || "Unknown error"));
+                }
+            } catch (error) {
+                console.error("Error fetching expenses:", error);
+            }
+        }
+
+        // Render expenses data
+        function renderExpenses(expenses, totalAmount) {
+            const expenseRecordsContainer = document.getElementById('expense-records');
+            const totalAmountContainer = document.getElementById('total-amount');
+            expenseRecordsContainer.innerHTML = '';  // Clear previous records
+
+            if (expenses && expenses.length > 0) {
+                expenses.forEach(expense => {
+                    const expenseElement = document.createElement('div');
+                    expenseElement.classList.add('p-4', 'border', 'mb-4');
+                    expenseElement.innerHTML = ` 
+                        <p><strong>Category:</strong> ${expense.category}</p>
+                        <p><strong>Description:</strong> ${expense.description}</p>
+                        <p><strong>Amount:</strong> $${expense.amount}</p>
+                        <p><strong>Date:</strong> ${expense.date}</p>
+                        <p><strong>Payment Method:</strong> ${expense.payment_method}</p>
+                    `;
+                    expenseRecordsContainer.appendChild(expenseElement);
+                });
+
+                // Display the total amount
+                totalAmountContainer.innerHTML = `<p><strong>Total Expenses:</strong> $${totalAmount}</p>`;
+            } else {
+                expenseRecordsContainer.innerHTML = '<p>No expenses found for this filter.</p>';
+                totalAmountContainer.innerHTML = '';  // Clear the total if no expenses
+            }
+        }
+    </script>
+</body>
+</html>

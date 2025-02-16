@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budget</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="config/config.js"></script>
+</head>
+<body class="bg-gray-100">
+
+  <!-- Navbar (Desktop Only) -->
+  <div id="navbar-container"></div>
+
+  <!-- Budget Section -->
+  <div class="container mx-auto mt-10 px-4">
+    <h2 class="text-2xl font-bold mb-4">Set Your Budget</h2>
+    <form id="budget-form">
+      <div class="mb-4">
+          <!-- Budget Section -->
+        <div class="container mx-auto mt-10 px-4">
+            <h2 class="text-2xl font-bold mb-4">Your Budget</h2>
+            <div id="budget-info" class="p-4 bg-white rounded shadow-md">
+            <p id="budget-message" class="text-lg">Loading budget...</p>
+            </div>
+        </div>
+
+
+        <label for="budget" class="block text-gray-700">Budget Amount:</label>
+        <input type="number" id="budget" name="budget" class="mt-2 p-2 border border-gray-300 rounded" required>
+      </div>
+      <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md">Set Budget</button>
+    </form>
+  </div>
+
+
+
+    <script>
+        // Fetch the budget from the API
+        async function fetchBudget() {
+          try {
+            const response = await fetch(`${config.serverUrl}/api/check_budget`, {
+              headers: {
+                "Authorization": "Bearer " + localStorage.getItem("access_token")
+              }
+            });
+    
+            const data = await response.json();
+            const budgetMessage = document.getElementById('budget-message');
+            const budgetValue = document.getElementById('budget-value');
+            
+            if (response.ok) {
+              // Set the budget message and value dynamically
+              budgetMessage.innerHTML = `Your current budget is $${data.budget}`;
+              budgetValue.innerHTML = `$${data.budget}`;
+            } else {
+              budgetMessage.innerHTML = data.message;
+              budgetValue.innerHTML = 'Not Set';
+            }
+          } catch (error) {
+            console.error("Error fetching budget:", error);
+          }
+        }
+    
+        // Call the function to fetch the budget on page load
+        fetchBudget();
+      </script>
+
+
+
+  <script>
+    // Load navbar.html into the container
+    fetch("navbar.html")
+        .then(response => response.text())
+        .then(data => document.getElementById("navbar-container").innerHTML = data)
+        .catch(error => console.error("Error loading navbar:", error));
+
+    // Handling the form submission for setting the budget
+    document.getElementById('budget-form').addEventListener('submit', async function(event) {
+      event.preventDefault();
+      const budgetAmount = document.getElementById('budget').value;
+
+      try {
+        const response = await fetch(`${config.serverUrl}/api/set_budget`, {
+          method: 'POST',
+          headers: {
+            "Authorization": "Bearer " + localStorage.getItem("access_token"),
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ budget: parseFloat(budgetAmount) })
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+          alert(data.message);
+          fetchBudget();
+        } else {
+          alert("Error setting budget: " + (data.message || "Unknown error"));
+        }
+      } catch (error) {
+        console.error("Error submitting budget:", error);
+      }
+    });
+  </script>
+
+  <!-- JavaScript File -->
+  <script type="module" src="config/auth.js"></script>
+</body>
+</html>

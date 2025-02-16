@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Category Management</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="config/config.js"></script>
+</head>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <!-- Navbar (Desktop Only) -->
+    <div id="navbar-container"></div>
+
+
+    <!-- Container -->
+    <div class="w-full max-w-3xl bg-white p-6 shadow-md rounded-md mt-5 mx-auto">
+        <h2 class="text-2xl font-bold text-center text-green-600 mb-4">Category Management</h2>
+
+        <!-- Add Category Form -->
+        <div class="mb-6">
+            <label class="block text-gray-700 font-medium mb-2">Add New Category:</label>
+            <div class="flex">
+                <input type="text" id="categoryInput" class="w-full px-3 py-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-green-400" name='name' placeholder="Enter category name">
+                <button onclick="addCategory()" class="bg-green-600 text-white px-4 py-2 rounded-r-md hover:bg-green-700">Add</button>
+            </div>
+        </div>
+
+    <!-- Category Table -->
+    <div class="container mx-auto p-6">
+        <h2 class="text-2xl font-bold mb-4">Category List</h2>
+        <table class="min-w-full table-auto bg-white border border-gray-300 shadow-md text-center">
+        <thead>
+            <tr>
+            <th class="py-2 px-4 border-b">#</th>
+            <th class="py-2 px-4 border-b">Category Name</th>
+            <th class="py-2 px-4 border-b">Date Created</th>
+            <th class="py-2 px-4 border-b">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="categoryTable"></tbody>
+        </table>
+    </div>
+
+    <script>
+        // Load navbar.html into the container
+        fetch("navbar.html")
+            .then(response => response.text())
+            .then(data => document.getElementById("navbar-container").innerHTML = data)
+            .catch(error => console.error("Error loading navbar:", error));
+    </script>
+
+
+
+  <script>
+    async function addCategory() {
+        const categoryInput = document.getElementById("categoryInput");
+        const categoryName = categoryInput.value.trim();
+        if (!categoryName) {
+            alert("Please enter a category name.");
+            return;
+        }
+
+        try {
+            const response = await fetch(`${config.serverUrl}/api/category_add`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + localStorage.getItem("access_token") // Ensure user is authenticated
+                },
+                body: JSON.stringify({ category: categoryName })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                alert(data.message);
+                categoryInput.value = "";  // Clear input field
+                fetchCategories();  // Reload category list
+            } else {
+                alert("Error: " + data.message);
+            }
+        } catch (error) {
+            console.error("Error adding category:", error);
+            alert("Failed to add category. Check API connection.");
+        }
+    }
+
+
+async function deleteCategory(categoryId) {
+    if (!confirm("Are you sure you want to delete this category?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${config.serverUrl}/api/category_delete/${categoryId}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": "Bearer " + localStorage.getItem("access_token") // Ensure user is authenticated
+            }
+        });
+
+        const data = await response.json();
+        if (response.ok) {
+            alert(data.message);  // Show success message
+            fetchCategories();  // Reload category list
+        } else {
+            alert("Error deleting category: " + data.message);
+        }
+    } catch (error) {
+        console.error("Error deleting category:", error);
+        alert("Failed to delete category. Check API connection.");
+    }
+}
+
+
+
+    async function fetchCategories() {
+        try {
+          const response = await fetch(`${config.serverUrl}/api/category_list`, {
+            headers: { "Authorization": "Bearer " + localStorage.getItem("access_token") }
+          });
+          const data = await response.json();
+          if (response.ok) {
+            renderCategories(data.categories);
+          } else {
+            alert("Error fetching categories: " + data.message);
+          }
+        } catch (error) {
+          console.error("Error fetching categories:", error);
+        }
+      }
+  
+      function renderCategories(categories) {
+        const tableBody = document.getElementById("categoryTable");
+        tableBody.innerHTML = "";
+  
+        categories.forEach((category, index) => {
+          tableBody.innerHTML += `
+            <tr>
+              <td class="py-2 px-4">${index + 1}</td>
+              <td class="py-2 px-4">${category.name}</td>
+              <td class="py-2 px-4">${category.date}</td>
+              <td class="py-2 px-4 text-center">
+                <button onclick="deleteCategory(${category.id})" class="bg-red-600 text-white px-3 py-1 rounded-md hover:bg-red-700">Delete</button>
+              </td>
+            </tr>
+          `;
+        });
+      }
+  
+    // Fetch categories on page load
+    fetchCategories();
+</script>
+
+
+
+
+  <!-- JavaScript File -->
+  <script type="module" src="config/auth.js"></script>
+</body>
+</html>
