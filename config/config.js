@@ -1,3 +1,3 @@
 const config = {
-    serverUrl: 'https://finance-tracker-with-ai-chat-bot.onrender.com' //Flask server url
+    serverUrl: 'https://flask.genxcommunication.com' //Flask server url
 };
